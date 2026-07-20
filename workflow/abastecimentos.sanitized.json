@@ -1,0 +1,816 @@
+{
+  "name": "Abastecimentos",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -320,
+        16
+      ],
+      "id": "8ba2f507-1349-4a9c-8fce-c451e9aeb5af",
+      "name": "Receber Mensagem"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5939ead2-3892-4f24-80a9-85db1193882f",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "14ce0b9b-450d-42b5-92c1-8e06fc4239ed",
+              "name": "message_id",
+              "value": "={{ $json.message.message_id }}",
+              "type": "number"
+            },
+            {
+              "id": "379557b5-90f1-48d0-a1e3-ad081583493d",
+              "name": "usuario_id",
+              "value": "={{ $json.message.from.id }}",
+              "type": "string"
+            },
+            {
+              "id": "12bb2698-3564-4cae-9e54-87adfd6807ee",
+              "name": "texto",
+              "value": "={{ $json.message.text || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a58eb606-adc6-4ac8-ab5d-afd27c6a65fa",
+              "name": "data_telegram",
+              "value": "={{ $json.message.date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -128,
+        16
+      ],
+      "id": "527ae0cd-8170-4f94-b13e-6af208bb1210",
+      "name": "Normalizar entrada"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const dados = $json.output ?? $json;\n\nconst camposObrigatorios = [\n  {\n    campo: 'data',\n    pergunta: 'Qual foi a data do abastecimento?'\n  },\n  {\n    campo: 'veiculo_id',\n    pergunta: 'Qual foi o veículo?'\n  },\n  {\n    campo: 'combustivel',\n    pergunta: 'Qual foi o combustível?'\n  },\n  {\n    campo: 'litros',\n    pergunta: 'Quantos litros foram abastecidos?'\n  },\n  {\n    campo: 'valor_total',\n    pergunta: 'Qual foi o valor total?'\n  },\n  {\n    campo: 'odometro',\n    pergunta: 'Qual é a quilometragem atual do veículo?'\n  }\n];\n\nfunction estaAusente(valor) {\n  return (\n    valor === null ||\n    valor === undefined ||\n    (typeof valor === 'string' && valor.trim() === '')\n  );\n}\n\nconst camposFaltantes = camposObrigatorios.filter(\n  item => estaAusente(dados[item.campo])\n);\n\nconst proximoCampo = camposFaltantes[0] ?? null;\n\nreturn {\n  json: {\n    ...dados,\n    campos_faltantes: camposFaltantes.map(item => item.campo),\n    dados_completos: camposFaltantes.length === 0,\n    proximo_campo: proximoCampo?.campo ?? null,\n    pergunta: proximoCampo?.pergunta ?? null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        -304
+      ],
+      "id": "1003e765-dc0a-4e6b-b1ec-990ddec97a5e",
+      "name": "Analisar campos obrigatorios"
+    },
+    {
+      "parameters": {
+        "text": "={{\n  `Data atual: ${$now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd')}\nStatus atual: ${$json.status || 'sem_pendencia'}\nDados pendentes: ${$json.dados_json || 'nenhum'}\nCampo esperado: ${$json.campo_pendente || 'nenhum'}\nNova mensagem do usuário: ${$('Normalizar entrada').item.json.texto}`\n}}",
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\",\n      \"description\": \"Data do abastecimento no formato YYYY-MM-DD. Em um novo abastecimento, quando nenhuma data for mencionada, usar a Data atual.\"\n    },\n    \"veiculo_id\": {\n      \"type\": \"string\",\n      \"description\": \"Veículo informado pelo usuário. Em um novo abastecimento, quando nenhum veículo for informado ou a mensagem disser meu carro, usar HB20.\"\n    },\n    \"combustivel\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"Combustível explicitamente informado ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"litros\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"description\": \"Quantidade de litros explicitamente informada ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"valor_total\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"description\": \"Valor total explicitamente informado ou já existente nos dados pendentes. Usar null quando ausente. Nunca estimar ou calcular.\"\n    },\n    \"odometro\": {\n      \"type\": [\n        \"integer\",\n        \"null\"\n      ],\n      \"description\": \"Quilometragem explicitamente informada ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"observacao\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"Informação adicional explicitamente mencionada ou já existente nos dados pendentes. Usar null quando não houver.\"\n    }\n  },\n  \"required\": [\n    \"data\",\n    \"veiculo_id\",\n    \"combustivel\",\n    \"litros\",\n    \"valor_total\",\n    \"odometro\",\n    \"observacao\"\n  ],\n  \"additionalProperties\": false\n}",
+        "options": {
+          "systemPromptTemplate": "Você extrai e atualiza dados de um abastecimento.\n\nA entrada contém:\n\nData atual\nStatus atual\nDados pendentes\nCampo esperado\nNova mensagem do usuário\n\nRetorne somente os campos definidos no JSON Schema.\n\nREGRAS GERAIS\n\n1. Esta mensagem já foi classificada como registro, complemento ou correção de abastecimento.\n2. Não classifique a intenção da mensagem.\n3. Não retorne ação, categoria ou tipo de consulta.\n4. Não interprete confirmação ou cancelamento.\n5. Não calcule preço por litro.\n6. Nunca invente combustível, litros, valor total ou odômetro.\n\nDADOS PENDENTES\n\n1. Quando Dados pendentes não for nenhum, preserve todos os valores existentes.\n2. Use a Nova mensagem para preencher ou corrigir os dados.\n3. Quando a mensagem for curta, interprete-a como resposta ao Campo esperado.\n4. Nunca apague um valor existente apenas porque ele não foi repetido.\n5. Um valor existente somente deve ser alterado quando a mensagem indicar claramente uma correção.\n6. Campos ainda ausentes devem permanecer null.\n\nDATA\n\n1. A Data atual fornecida na entrada é a única referência de data atual válida.\n2. Nunca use a data interna do modelo.\n3. Em um novo abastecimento, se nenhuma data for mencionada, use a Data atual.\n4. Hoje significa a Data atual.\n5. Ontem significa um dia antes da Data atual.\n6. Anteontem significa dois dias antes da Data atual.\n7. Dia 10 ou dia 10 deste mês significa o dia 10 do mês e ano da Data atual.\n8. Uma data como 10/07 usa o ano da Data atual.\n9. Uma data completa deve ser respeitada.\n10. Retorne sempre no formato YYYY-MM-DD.\n\nVEÍCULO\n\n1. Se um veículo for informado, use o veículo informado.\n2. Em um novo abastecimento, se nenhum veículo for informado, use HB20.\n3. Meu carro, no carro ou meu veículo significam HB20.\n4. Nunca substitua um veículo explicitamente informado por HB20.\n\nOUTROS CAMPOS\n\n1. Combustível somente pode vir da mensagem ou dos dados pendentes.\n2. Litros somente podem vir da mensagem ou dos dados pendentes.\n3. Valor total somente pode vir da mensagem ou dos dados pendentes.\n4. Odômetro somente pode vir da mensagem ou dos dados pendentes.\n5. Converta números com vírgula para números decimais.\n6. Observação deve conter apenas informação adicional explicitamente mencionada."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        -304
+      ],
+      "id": "b6e78a2a-3b0f-4640-a25d-112910e60fda",
+      "name": "Extrair abastecimento"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8b21a534-1794-4553-91e1-042a14eaef94",
+              "leftValue": "={{ $json.dados_completos }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1536,
+        -304
+      ],
+      "id": "5de1a1b0-039b-459f-9712-7c886d584409",
+      "name": "Dados completos?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "text": "={{ $('Analisar campos obrigatorios').item.json.pergunta }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        -288
+      ],
+      "id": "b1048036-b638-4426-ac81-11bdda083dc9",
+      "name": "Perguntar dado faltante"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "text": "=Confirme os dados do abastecimento:\n\nData: {{ $('Analisar campos obrigatorios').item.json.data }}\nVeículo: {{ $('Analisar campos obrigatorios').item.json.veiculo_id }}\nCombustível: {{ $('Analisar campos obrigatorios').item.json.combustivel }}\nLitros: {{ $('Analisar campos obrigatorios').item.json.litros }}\nValor total: R$ {{ $('Analisar campos obrigatorios').item.json.valor_total }}\nOdômetro: {{ $('Analisar campos obrigatorios').item.json.odometro }} km\nObservação: {{ $('Analisar campos obrigatorios').item.json.observacao || 'Nenhuma' }}\n\nOs dados estão corretos?",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2048,
+        -480
+      ],
+      "id": "4bf08424-f18b-4b43-8d75-01cfd0c45df9",
+      "name": "Confirmar abastecimento"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": {
+          "__rl": true,
+          "value": "abastecimentos_pendentes",
+          "mode": "list",
+          "cachedResultName": "abastecimentos_pendentes"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "chat_id",
+        "valueToMatchOn": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "usuario_id",
+              "value": "={{ $('Normalizar entrada').item.json.usuario_id }}"
+            },
+            {
+              "column": "dados_json",
+              "value": "={{ JSON.stringify({   data: $json.data,   veiculo_id: $json.veiculo_id,   combustivel: $json.combustivel,   litros: $json.litros,   valor_total: $json.valor_total,   odometro: $json.odometro,   observacao: $json.observacao }) }}"
+            },
+            {
+              "column": "status",
+              "value": "coletando_dados"
+            },
+            {
+              "column": "campo_pendente",
+              "value": "={{ $json.proximo_campo }}"
+            },
+            {
+              "column": "updated_at",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        -288
+      ],
+      "id": "a4627869-bb0b-433e-8a5a-6e4960e74c1f",
+      "name": "Salvar pendencia"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "allowExpressions": true,
+        "queryExpression": "={{\n  \"SELECT dados_json, status, campo_pendente \" +\n  \"FROM abastecimentos_pendentes \" +\n  \"WHERE chat_id = '\" +\n  $('Normalizar entrada').item.json.chat_id +\n  \"' LIMIT 1\"\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        64,
+        16
+      ],
+      "id": "226491d8-bd5b-48db-b950-de32a7d7b9dd",
+      "name": "Buscar pendencia",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": {
+          "__rl": true,
+          "value": "abastecimentos_pendentes",
+          "mode": "list",
+          "cachedResultName": "abastecimentos_pendentes"
+        },
+        "dataMode": "defineBelow",
+        "columnToMatchOn": "chat_id",
+        "valueToMatchOn": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "chat_id",
+              "value": "={{ $('Normalizar entrada').item.json.chat_id }}"
+            },
+            {
+              "column": "usuario_id",
+              "value": "={{ $('Normalizar entrada').item.json.usuario_id }}"
+            },
+            {
+              "column": "dados_json",
+              "value": "={{ JSON.stringify({   data: $json.data,   veiculo_id: $json.veiculo_id,   combustivel: $json.combustivel,   litros: $json.litros,   valor_total: $json.valor_total,   odometro: $json.odometro,   observacao: $json.observacao }) }}"
+            },
+            {
+              "column": "status",
+              "value": "aguardando_confirmacao"
+            },
+            {
+              "column": "campo_pendente",
+              "value": "={{ null }}"
+            },
+            {
+              "column": "updated_at",
+              "value": "={{ $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd HH:mm:ss') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        -480
+      ],
+      "id": "dbfdf9f3-164e-4142-a7c7-dee108d496cb",
+      "name": "Salvar confirmacao"
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "abastecimentos",
+          "mode": "list",
+          "cachedResultName": "abastecimentos"
+        },
+        "dataMode": "defineBelow",
+        "valuesToSend": {
+          "values": [
+            {
+              "column": "data",
+              "value": "={{ $json.output.data }}"
+            },
+            {
+              "column": "veiculo_id",
+              "value": "={{ $json.output.veiculo_id }}"
+            },
+            {
+              "column": "combustivel",
+              "value": "={{ $json.output.combustivel }}"
+            },
+            {
+              "column": "litros",
+              "value": "={{ $json.output.litros }}"
+            },
+            {
+              "column": "valor_total",
+              "value": "={{ $json.output.valor_total }}"
+            },
+            {
+              "column": "preco_litro",
+              "value": "={{ Number(($json.output.valor_total / $json.output.litros).toFixed(3)) }}"
+            },
+            {
+              "column": "odometro",
+              "value": "={{ $json.output.odometro }}"
+            },
+            {
+              "column": "observacao",
+              "value": "={{ $json.output.observacao }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        320
+      ],
+      "id": "7b8f92c1-0f25-48a5-9670-b438d939e4f3",
+      "name": "Salvar abastecimento"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "allowExpressions": true,
+        "queryExpression": "={{\n  `DELETE FROM abastecimentos_pendentes\n   WHERE chat_id = '${$('Normalizar entrada').item.json.chat_id}'`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        320
+      ],
+      "id": "6901d401-10a1-4e45-ba37-053f895f1f2c",
+      "name": "Remover pendencia confirmada"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "text": "Abastecimento salvo com sucesso.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1520,
+        320
+      ],
+      "id": "2f870939-9d67-45bc-aeb6-d539601a879f",
+      "name": "Informar abastecimento salvo"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "allowExpressions": true,
+        "queryExpression": "={{\n  `DELETE FROM abastecimentos_pendentes\n   WHERE chat_id = '${$('Normalizar entrada').item.json.chat_id}'`\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNode",
+      "typeVersion": 2,
+      "position": [
+        928,
+        512
+      ],
+      "id": "ea8cfe7c-0bfc-4111-946b-a2a504611185",
+      "name": "Remover pendencia cancelada"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "text": "Registro de abastecimento cancelado.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        512
+      ],
+      "id": "d372d6af-f65a-4554-bfb5-e24118bb7de0",
+      "name": "Informar cancelamento"
+    },
+    {
+      "parameters": {
+        "inputText": "={{\n  `Status atual: ${$json.status || 'sem_pendencia'}\nDados pendentes: ${$json.dados_json || 'nenhum'}\nCampo esperado: ${$json.campo_pendente || 'nenhum'}\nMensagem do usuário: ${$('Normalizar entrada').item.json.texto}`\n}}",
+        "categories": {
+          "categories": [
+            {
+              "category": "registro",
+              "description": "Use quando a mensagem representar um novo abastecimento ou fornecer, complementar ou corrigir dados de um abastecimento pendente. Quando existir uma pendência com status coletando_dados, respostas curtas que possam responder ao Campo esperado, como gasolina, 20 litros, 100 reais ou 188000 km, pertencem a esta categoria. Durante aguardando_confirmacao, uma correção de qualquer dado também pertence a esta categoria. Não use para perguntas sobre o histórico."
+            },
+            {
+              "category": "consulta",
+              "description": "Use quando o usuário fizer uma pergunta ou solicitar informações, cálculos ou resumos sobre abastecimentos já registrados. Inclui último abastecimento, últimos registros, gastos, litros, preço médio, maior preço, combustível mais usado, resumo por veículo e consumo em km/l. Não classifique como registro apenas porque a pergunta menciona combustível, litros, valor, veículo ou odômetro."
+            },
+            {
+              "category": "confirmar",
+              "description": "Use somente quando o Status atual for aguardando_confirmacao e a mensagem indicar aprovação para salvar os dados apresentados. Considere variações como sim, s, si, ss, certo, correto, confirmo, pode salvar, salva, está certo e tá certo. Sem o status aguardando_confirmacao, essas respostas não devem ser classificadas como confirmar."
+            },
+            {
+              "category": "cancelar",
+              "description": "Use somente quando existir uma pendência com status coletando_dados ou aguardando_confirmacao e o usuário indicar que deseja abandonar ou excluir o registro pendente. Considere variações como não, n, cancela, cancelar, desiste, deixa pra lá, esquece e não salva. Sem uma conversa pendente, não classifique como cancelar."
+            },
+            {
+              "category": "outro",
+              "description": "Use para mensagens que não sejam um novo abastecimento, complemento ou correção, consulta, confirmação válida ou cancelamento válido. Inclui saudações, assuntos não relacionados, mensagens ambíguas e respostas de confirmação ou cancelamento enviadas sem o estado necessário."
+            }
+          ]
+        },
+        "options": {
+          "multiClass": false,
+          "enableAutoFixing": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textClassifier",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        -32
+      ],
+      "id": "510b9431-0a5b-48f5-bff0-2781ea416b2f",
+      "name": "Classificar mensagem"
+    },
+    {
+      "parameters": {
+        "jsCode": "const pendencia = $('Buscar pendencia').item.json;\n\nif (pendencia.status !== 'aguardando_confirmacao') {\n  throw new Error(\n    'Não existe um abastecimento aguardando confirmação.'\n  );\n}\n\nif (!pendencia.dados_json) {\n  throw new Error(\n    'A pendência não possui dados para confirmar.'\n  );\n}\n\nlet dados;\n\ntry {\n  dados = JSON.parse(pendencia.dados_json);\n} catch (error) {\n  throw new Error(\n    `Não foi possível interpretar os dados pendentes: ${error.message}`\n  );\n}\n\nreturn {\n  json: {\n    output: {\n      data: dados.data,\n      veiculo_id: dados.veiculo_id,\n      combustivel: dados.combustivel,\n      litros: dados.litros,\n      valor_total: dados.valor_total,\n      odometro: dados.odometro,\n      observacao: dados.observacao\n    }\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        928,
+        320
+      ],
+      "id": "88737f3f-ee37-4776-8633-8395d4ce81e5",
+      "name": "Preparar dados confirmados"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
+        "text": "Não entendi a solicitação.  Você pode registrar um abastecimento, consultar informações ou continuar um registro pendente.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        928,
+        704
+      ],
+      "id": "8a7b4d43-1b62-4261-9cda-49d4bf386ec9",
+      "name": "Informar mensagem não reconhecida"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \n  'Data atual: ' +\n  $now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd') +\n  '\\nPergunta do usuário: ' +\n  $('Normalizar entrada').first().json.texto\n}}",
+        "options": {
+          "systemMessage": "Você responde perguntas sobre o histórico pessoal de abastecimentos do usuário.\n\nResponda exclusivamente à pergunta feita pelo usuário.\n\nNão apresente cálculos, análises, alertas ou informações que não tenham sido solicitados.\n\nSe o usuário pedir o último abastecimento, informe somente o registro mais recente.\n\nUse obrigatoriamente a ferramenta Consultar abastecimentos para obter os dados antes de responder.\n\nA ferramenta retorna no máximo os 100 abastecimentos mais recentes, ordenados do mais recente para o mais antigo.\n\nCampos disponíveis:\n\nid\ndata\nveiculo_id\ncombustivel\nlitros\nvalor_total\npreco_litro\nodometro\nobservacao\n\nREGRAS\n\n1. Responda somente com base nos registros retornados pela ferramenta.\n2. Nunca invente abastecimentos, datas, valores, litros, preços ou odômetros.\n3. Considere a Data atual informada na mensagem para interpretar hoje, ontem, esta semana e este mês.\n4. Meu carro e meu veículo significam HB20.\n5. Formate valores monetários em reais.\n6. Formate datas de maneira legível para o usuário.\n7. Quando não existirem dados suficientes, explique isso claramente.\n8. Não mencione SQL, banco de dados, ferramentas ou detalhes internos na resposta.\n9. Seja direto e apresente somente as informações necessárias.\n\nCONSUMO EM KM/L\n\n1. Calcule consumo somente quando existirem abastecimentos consecutivos do mesmo veículo com odômetros válidos e crescentes.\n2. Para cada intervalo, use a diferença entre os odômetros dividida pelos litros do abastecimento mais recente do intervalo.\n3. Nunca misture veículos diferentes.\n4. Ignore intervalos com odômetro ausente, repetido ou decrescente.\n5. Se não houver pelo menos dois registros válidos do mesmo veículo, informe que não há dados suficientes.\n6. Apresente o resultado como estimativa baseada nos registros informados."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        928,
+        -48
+      ],
+      "id": "3e815970-1235-4e15-bbe9-39b497220ae6",
+      "name": "Agente de consultas"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Retorna os 100 abastecimentos mais recentes, do mais recente para o mais antigo, para consultas, cálculos e resumos. A ferramenta realiza somente leitura.",
+        "operation": "executeQuery",
+        "query": "SELECT\n    id,\n    data,\n    veiculo_id,\n    combustivel,\n    litros,\n    valor_total,\n    preco_litro,\n    odometro,\n    observacao\nFROM abastecimentos\nORDER BY data DESC, id DESC\nLIMIT 100;",
+        "options": {}
+      },
+      "type": "n8n-nodes-sqlite3.sqliteNodeTool",
+      "typeVersion": 2,
+      "position": [
+        1104,
+        144
+      ],
+      "id": "f0269743-e55e-411c-b9f6-ff2dca09e775",
+      "name": "Consultar abastecimentos"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        288,
+        256
+      ],
+      "id": "a69baf4f-06d9-45e9-8243-2c937b04fff4",
+      "name": "Groq - Classificador"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -176
+      ],
+      "id": "48624d8c-4759-4e55-912d-a3e700b09ce7",
+      "name": "Groq - Extrator"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        928,
+        144
+      ],
+      "id": "07c8507c-b2d3-474f-8757-5088218dd31b",
+      "name": "Groq - Agente"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar entrada').first().json.chat_id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        -48
+      ],
+      "id": "b0eed1cf-75ff-405a-b21c-0bbf8bd074a7",
+      "name": "Enviar resposta da consulta"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Receber Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Normalizar entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar entrada": {
+      "main": [
+        [
+          {
+            "node": "Buscar pendencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair abastecimento": {
+      "main": [
+        [
+          {
+            "node": "Analisar campos obrigatorios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar campos obrigatorios": {
+      "main": [
+        [
+          {
+            "node": "Dados completos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dados completos?": {
+      "main": [
+        [
+          {
+            "node": "Salvar confirmacao",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salvar pendencia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar pendencia": {
+      "main": [
+        [
+          {
+            "node": "Perguntar dado faltante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar pendencia": {
+      "main": [
+        [
+          {
+            "node": "Classificar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar confirmacao": {
+      "main": [
+        [
+          {
+            "node": "Confirmar abastecimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar abastecimento": {
+      "main": [
+        [
+          {
+            "node": "Remover pendencia confirmada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remover pendencia confirmada": {
+      "main": [
+        [
+          {
+            "node": "Informar abastecimento salvo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remover pendencia cancelada": {
+      "main": [
+        [
+          {
+            "node": "Informar cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classificar mensagem": {
+      "main": [
+        [
+          {
+            "node": "Extrair abastecimento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agente de consultas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar dados confirmados",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Remover pendencia cancelada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Informar mensagem não reconhecida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar dados confirmados": {
+      "main": [
+        [
+          {
+            "node": "Salvar abastecimento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente de consultas": {
+      "main": [
+        [
+          {
+            "node": "Enviar resposta da consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar abastecimentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de consultas",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Classificador": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classificar mensagem",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Extrator": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extrair abastecimento",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq - Agente": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente de consultas",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
