@@ -1,0 +1,13 @@
+*.sqlite
+*.sqlite3
+*.db
+*.env
+.env.*
+*.log
+
+Abastecimentos.json
+exports-original/
+backups/
+data/
+credentials/
+secrets/
