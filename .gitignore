@@ -11,3 +11,6 @@ backups/
 data/
 credentials/
 secrets/
+
+CONTRIBUTING.md
+copilot-instructions.md
