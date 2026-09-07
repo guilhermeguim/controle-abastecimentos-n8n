@@ -4,6 +4,28 @@ All notable changes to this project are documented in this file.
 
 The format follows a simple Keep a Changelog style, and stable releases use SemVer.
 
+## [v1.1.0] - 2026-09-07
+
+MINOR release. This update adds access controls and input validation while preserving the main fuel-log flow and database schema. The authorized sender must be configured after import. Local checks passed; n8n import and end-to-end execution were not performed during release preparation.
+
+### Added
+- Telegram sender authorization before normalization, SQLite access, and AI calls.
+- Non-empty text routing and a text-only notice for unsupported messages from the authorized sender.
+- Release notes with upgrade instructions and runtime checks in `docs/releases/v1.1.0.md`.
+
+### Changed
+- Updated the public workflow from 24 to 27 nodes and preserved the new canvas layout.
+- Restricted the extraction schema with date format/pattern, fuel enumeration, positive liters and amounts, non-negative integer odometer, and text length limits.
+- Expanded extraction guidance for relative dates, existing pending values, numeric formatting, and fuel normalization.
+- Added deterministic normalization of `Etanol`, `álcool`, and `alcool` to `etanol` before required-field checks.
+- Shortened the unrecognized-message response to `Não entendi a solicitação.`.
+
+### Security
+- Unmatched Telegram senders stop at the authorization node without a workflow response.
+- Replaced the private authorized sender ID with `REPLACE_WITH_TELEGRAM_USER_ID`; importers must configure it before use.
+- Cleared pinned Telegram execution data and exported the public workflow with `active: false`.
+- Removed credential references, webhook IDs, and workflow/instance metadata from the refreshed export.
+
 ## [v1.0.1] - 2026-07-20
 
 ### Changed
