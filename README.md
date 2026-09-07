@@ -19,8 +19,7 @@ The workflow is built for a personal vehicle log. The default vehicle in the pro
 - **[Database schema](database/schema.sql):** Minimal SQLite schema required by the workflow.
 - **[Sanitized workflow](workflow/abastecimentos.sanitized.json):** Public n8n export with instance metadata and credentials removed.
 - **[Changelog](CHANGELOG.md):** Published changes by release.
-- **[Latest stable release](docs/releases/v1.0.1.md):** Published release dossier.
-- **[Next release notes](docs/releases/v1.1.0.md):** Unreleased security update, configuration changes, and validation checklist.
+- **[Latest stable release](docs/releases/v1.1.0.md):** Security update, configuration changes, and validation checklist.
 
 ## Project Purpose
 

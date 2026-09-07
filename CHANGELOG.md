@@ -4,14 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows a simple Keep a Changelog style, and stable releases use SemVer.
 
-## [Unreleased]
+## [v1.1.0] - 2026-09-07
 
-Target version: **v1.1.0** (MINOR). This update adds access controls and input validation while preserving the main fuel-log flow and database schema. The authorized sender must be configured after import. Release preparation date: 2026-09-07. The latest published version remains `v1.0.1` until runtime validation and tagging are complete.
+MINOR release. This update adds access controls and input validation while preserving the main fuel-log flow and database schema. The authorized sender must be configured after import. Local checks passed; n8n import and end-to-end execution were not performed during release preparation.
 
 ### Added
 - Telegram sender authorization before normalization, SQLite access, and AI calls.
 - Non-empty text routing and a text-only notice for unsupported messages from the authorized sender.
-- Release preparation notes with upgrade instructions and runtime checks in `docs/releases/v1.1.0.md`.
+- Release notes with upgrade instructions and runtime checks in `docs/releases/v1.1.0.md`.
 
 ### Changed
 - Updated the public workflow from 24 to 27 nodes and preserved the new canvas layout.

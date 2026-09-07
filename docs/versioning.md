@@ -79,6 +79,12 @@ docs: document pending conversation persistence
 chore: update sanitized workflow export
 ```
 
+## Branches And Merging
+
+Use `<type>/<short-description>` with lowercase words separated by hyphens. Match the prefix to the work: `feat/`, `fix/`, `refactor/`, `docs/`, or `chore/`. Examples include `feat/proteger-entrada-telegram` and `docs/melhorar-apresentacao-publica`.
+
+Use the repository convention instead of a tool-specific branch prefix. Merge pull requests into `main` with a merge commit, preserving their commits; do not squash. Create release tags on the resulting `main` commit.
+
 ## Release Versioning
 
 Use SemVer only for stable releases:
@@ -102,9 +108,9 @@ v1.1.1 - message classification fix
 v2.0.0 - incompatible data model change
 ```
 
-The pending `v1.1.0` update is MINOR: it adds sender authorization, text routing, and extraction validation while preserving the main fuel-log flow and SQLite schema. Configuring the allowed sender is a setup step for the new protection, not a structural migration. Document this setup requirement and the narrower accepted inputs in the upgrade notes; an additional configuration field alone does not require a MAJOR release.
+The `v1.1.0` update is MINOR: it adds sender authorization, text routing, and extraction validation while preserving the main fuel-log flow and SQLite schema. Configuring the allowed sender is a setup step for the new protection, not a structural migration. Document this setup requirement and the narrower accepted inputs in the upgrade notes; an additional configuration field alone does not require a MAJOR release.
 
-Keep its changelog entry under `Unreleased` and its release dossier marked as pending until the runtime checks pass. Only then assign the release date, commit the reviewed public files, create the stable `v1.1.0` tag, and publish the matching release notes. Local JSON and graph checks do not establish n8n runtime compatibility.
+While preparing an update, keep its changelog entry under `Unreleased`. To finalize publication, assign the version and release date, document the checks actually performed and any remaining runtime checks, commit the reviewed public files, merge into `main`, create the version tag, and publish matching release notes. Local JSON and graph checks do not establish n8n runtime compatibility; never mark runtime checks complete unless they were performed.
 
 ## Pre-Commit Checklist
 
@@ -144,5 +150,5 @@ Full instance recovery depends on a separate private backup.
 - Required tables must exist before runtime use.
 - The SQLite database path must be configured in the SQLite credential.
 - Telegram and Groq credentials must be configured by the user.
-- The authorized Telegram sender ID must be configured after import of the pending v1.1.0 workflow.
+- The authorized Telegram sender ID must be configured after import of the v1.1.0 workflow.
 - Sender authorization does not restrict chat type or isolate the shared history by user.
