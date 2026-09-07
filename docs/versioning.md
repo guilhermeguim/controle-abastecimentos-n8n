@@ -33,13 +33,29 @@ Git is used to track the sanitized workflow export, the SQLite schema, release d
 1. Change the workflow in n8n.
 2. Test the behavior in n8n.
 3. Export the original JSON.
-4. Keep the original export outside Git.
+4. Keep the original export outside Git (`Abastecimentos.json` is ignored locally).
 5. Regenerate the sanitized workflow JSON.
 6. Validate the sanitized JSON.
 7. Review the diff.
 8. Update documentation when needed.
 9. Commit the change.
 10. Create a tag when the version is stable.
+
+## Sanitization Requirements
+
+Regenerate `workflow/abastecimentos.sanitized.json` from the private export, preserving node logic, node IDs, positions, and connections except for the explicit privacy substitutions below:
+
+- Remove every `credentials`, `webhookId`, and `instanceId` field, including nested occurrences.
+- Remove root `id`, `versionId`, `meta`, and `staticData`, if present.
+- Replace `pinData` with `{}`; pinned Telegram events can include user IDs, chat IDs, names, and message content.
+- In `Usuário autorizado?`, replace the condition's private `rightValue` with the string `REPLACE_WITH_TELEGRAM_USER_ID`. Retain the comparison against `message.from.id` and its equality operator.
+- Set root `active` to `false` so the public artifact is prepared for configuration and testing after import.
+- Review any tags, node groups, notes, literal chat IDs, paths, URLs, headers, code, and prompt examples for personal or environment-specific data. Do not publish non-empty metadata without reviewing it.
+- Scan the public files for token/key patterns and values taken from the private credential blocks, metadata, and Telegram sample. Report locations or counts, never private values.
+
+Removing n8n credential references alone is insufficient: literal IDs and pinned execution data can remain elsewhere in the export. Preserve dynamic expressions such as `message.chat.id` and `message.from.id`; these are runtime references, not private literal values.
+
+For a local syntax check, run `python -m json.tool workflow/abastecimentos.sanitized.json` (Python 3). Also verify unique node names/IDs, valid connection endpoints, unchanged connections relative to the private export, the authorization/text branches, and the absence of forbidden fields. Check `git check-ignore Abastecimentos.json` and inspect `git status --short` before staging public files.
 
 ## Commit Pattern
 
@@ -86,18 +102,27 @@ v1.1.1 - message classification fix
 v2.0.0 - incompatible data model change
 ```
 
+The pending `v1.1.0` update is MINOR: it adds sender authorization, text routing, and extraction validation while preserving the main fuel-log flow and SQLite schema. Configuring the allowed sender is a setup step for the new protection, not a structural migration. Document this setup requirement and the narrower accepted inputs in the upgrade notes; an additional configuration field alone does not require a MAJOR release.
+
+Keep its changelog entry under `Unreleased` and its release dossier marked as pending until the runtime checks pass. Only then assign the release date, commit the reviewed public files, create the stable `v1.1.0` tag, and publish the matching release notes. Local JSON and graph checks do not establish n8n runtime compatibility.
+
 ## Pre-Commit Checklist
 
 - [ ] Workflow tested in n8n.
-- [ ] Original export kept outside the repository.
+- [ ] Original export ignored and absent from Git's tracked files.
 - [ ] Sanitization executed.
 - [ ] Credentials removed.
 - [ ] Webhook IDs removed.
 - [ ] `instanceId` removed.
+- [ ] Root workflow metadata and static runtime data removed.
+- [ ] `pinData` is empty.
+- [ ] Private authorized sender ID replaced with the documented placeholder.
+- [ ] Public export has `active: false`.
 - [ ] Real database absent.
 - [ ] Personal data absent.
 - [ ] JSON is valid.
 - [ ] Connections are valid.
+- [ ] Authorization and text-only routing checked, including rejected inputs.
 - [ ] Diff reviewed.
 - [ ] README updated when needed.
 
@@ -106,6 +131,8 @@ v2.0.0 - incompatible data model change
 A previous workflow version can be recovered from Git history. The matching sanitized JSON can be manually imported into n8n.
 
 Credentials must be configured again after import. Git does not restore the real SQLite database, n8n credentials, execution history, Docker volumes, or private backups.
+
+Returning from `v1.1.0` to `v1.0.1` also removes the sender authorization and text gate. Review that access change before activating an older workflow; no schema rollback is required for this update.
 
 Full instance recovery depends on a separate private backup.
 
@@ -117,3 +144,5 @@ Full instance recovery depends on a separate private backup.
 - Required tables must exist before runtime use.
 - The SQLite database path must be configured in the SQLite credential.
 - Telegram and Groq credentials must be configured by the user.
+- The authorized Telegram sender ID must be configured after import of the pending v1.1.0 workflow.
+- Sender authorization does not restrict chat type or isolate the shared history by user.

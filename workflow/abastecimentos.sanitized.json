@@ -11,8 +11,8 @@
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.4,
       "position": [
-        -320,
-        16
+        -416,
+        32
       ],
       "id": "8ba2f507-1349-4a9c-8fce-c451e9aeb5af",
       "name": "Receber Mensagem"
@@ -58,7 +58,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -128,
+        288,
         16
       ],
       "id": "527ae0cd-8170-4f94-b13e-6af208bb1210",
@@ -67,12 +67,12 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const dados = $json.output ?? $json;\n\nconst camposObrigatorios = [\n  {\n    campo: 'data',\n    pergunta: 'Qual foi a data do abastecimento?'\n  },\n  {\n    campo: 'veiculo_id',\n    pergunta: 'Qual foi o veículo?'\n  },\n  {\n    campo: 'combustivel',\n    pergunta: 'Qual foi o combustível?'\n  },\n  {\n    campo: 'litros',\n    pergunta: 'Quantos litros foram abastecidos?'\n  },\n  {\n    campo: 'valor_total',\n    pergunta: 'Qual foi o valor total?'\n  },\n  {\n    campo: 'odometro',\n    pergunta: 'Qual é a quilometragem atual do veículo?'\n  }\n];\n\nfunction estaAusente(valor) {\n  return (\n    valor === null ||\n    valor === undefined ||\n    (typeof valor === 'string' && valor.trim() === '')\n  );\n}\n\nconst camposFaltantes = camposObrigatorios.filter(\n  item => estaAusente(dados[item.campo])\n);\n\nconst proximoCampo = camposFaltantes[0] ?? null;\n\nreturn {\n  json: {\n    ...dados,\n    campos_faltantes: camposFaltantes.map(item => item.campo),\n    dados_completos: camposFaltantes.length === 0,\n    proximo_campo: proximoCampo?.campo ?? null,\n    pergunta: proximoCampo?.pergunta ?? null\n  }\n};"
+        "jsCode": "const dados = $json.output ?? $json;\n\nif (['Etanol', 'álcool', 'alcool'].includes(dados.combustivel)) {\n  dados.combustivel = 'etanol';\n}\n\nconst camposObrigatorios = [\n  {\n    campo: 'data',\n    pergunta: 'Qual foi a data do abastecimento?'\n  },\n  {\n    campo: 'veiculo_id',\n    pergunta: 'Qual foi o veículo?'\n  },\n  {\n    campo: 'combustivel',\n    pergunta: 'Qual foi o combustível?'\n  },\n  {\n    campo: 'litros',\n    pergunta: 'Quantos litros foram abastecidos?'\n  },\n  {\n    campo: 'valor_total',\n    pergunta: 'Qual foi o valor total?'\n  },\n  {\n    campo: 'odometro',\n    pergunta: 'Qual é a quilometragem atual do veículo?'\n  }\n];\n\nfunction estaAusente(valor) {\n  return (\n    valor === null ||\n    valor === undefined ||\n    (typeof valor === 'string' && valor.trim() === '')\n  );\n}\n\nconst camposFaltantes = camposObrigatorios.filter(\n  item => estaAusente(dados[item.campo])\n);\n\nconst proximoCampo = camposFaltantes[0] ?? null;\n\nreturn {\n  json: {\n    ...dados,\n    campos_faltantes: camposFaltantes.map(item => item.campo),\n    dados_completos: camposFaltantes.length === 0,\n    proximo_campo: proximoCampo?.campo ?? null,\n    pergunta: proximoCampo?.pergunta ?? null\n  }\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1344,
+        1760,
         -304
       ],
       "id": "1003e765-dc0a-4e6b-b1ec-990ddec97a5e",
@@ -82,7 +82,7 @@
       "parameters": {
         "text": "={{\n  `Data atual: ${$now.setZone('America/Sao_Paulo').toFormat('yyyy-MM-dd')}\nStatus atual: ${$json.status || 'sem_pendencia'}\nDados pendentes: ${$json.dados_json || 'nenhum'}\nCampo esperado: ${$json.campo_pendente || 'nenhum'}\nNova mensagem do usuário: ${$('Normalizar entrada').item.json.texto}`\n}}",
         "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\",\n      \"description\": \"Data do abastecimento no formato YYYY-MM-DD. Em um novo abastecimento, quando nenhuma data for mencionada, usar a Data atual.\"\n    },\n    \"veiculo_id\": {\n      \"type\": \"string\",\n      \"description\": \"Veículo informado pelo usuário. Em um novo abastecimento, quando nenhum veículo for informado ou a mensagem disser meu carro, usar HB20.\"\n    },\n    \"combustivel\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"Combustível explicitamente informado ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"litros\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"description\": \"Quantidade de litros explicitamente informada ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"valor_total\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"description\": \"Valor total explicitamente informado ou já existente nos dados pendentes. Usar null quando ausente. Nunca estimar ou calcular.\"\n    },\n    \"odometro\": {\n      \"type\": [\n        \"integer\",\n        \"null\"\n      ],\n      \"description\": \"Quilometragem explicitamente informada ou já existente nos dados pendentes. Usar null quando ausente.\"\n    },\n    \"observacao\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"description\": \"Informação adicional explicitamente mencionada ou já existente nos dados pendentes. Usar null quando não houver.\"\n    }\n  },\n  \"required\": [\n    \"data\",\n    \"veiculo_id\",\n    \"combustivel\",\n    \"litros\",\n    \"valor_total\",\n    \"odometro\",\n    \"observacao\"\n  ],\n  \"additionalProperties\": false\n}",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"data\": {\n      \"type\": \"string\",\n      \"format\": \"date\",\n      \"pattern\": \"^\\\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\\\d|3[01])$\",\n      \"description\": \"Data do abastecimento obrigatoriamente no formato YYYY-MM-DD. Em um novo abastecimento, quando nenhuma data for mencionada, usar a Data atual fornecida na entrada. Para hoje, ontem, anteontem e outras referências relativas, calcular sempre a partir da Data atual fornecida. Nunca inventar uma data.\"\n    },\n    \"veiculo_id\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"maxLength\": 50,\n      \"description\": \"Veículo explicitamente informado pelo usuário ou já existente nos dados pendentes. Em um novo abastecimento, quando nenhum veículo for informado ou a mensagem disser meu carro, no carro ou meu veículo, usar HB20. Preservar o veículo existente nos dados pendentes quando não houver correção explícita. Não inventar outros veículos.\"\n    },\n    \"combustivel\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"enum\": [\n        \"etanol\",\n        \"gasolina comum\",\n        \"gasolina aditivada\",\n        \"diesel\",\n        null\n      ],\n      \"description\": \"Combustível explicitamente informado pelo usuário ou já existente nos dados pendentes. Padronizar obrigatoriamente antes de retornar. Etanol, álcool, alcool, etano e variações de maiúsculas ou minúsculas devem retornar como 'etanol'. Gasolina sem qualificação deve retornar como 'gasolina comum'. Gasolina comum deve retornar como 'gasolina comum'. Gasolina aditivada deve retornar como 'gasolina aditivada'. Diesel deve retornar como 'diesel'. Nunca inventar o combustível. Usar null quando não houver informação suficiente.\"\n    },\n    \"litros\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"exclusiveMinimum\": 0,\n      \"description\": \"Quantidade de litros explicitamente informada pelo usuário ou já existente nos dados pendentes. Converter vírgula decimal para número quando necessário. Nunca estimar, calcular ou deduzir litros a partir do valor total ou preço do combustível. O valor, quando informado, deve ser maior que zero. Usar null quando ausente.\"\n    },\n    \"valor_total\": {\n      \"type\": [\n        \"number\",\n        \"null\"\n      ],\n      \"exclusiveMinimum\": 0,\n      \"description\": \"Valor total pago explicitamente informado pelo usuário ou já existente nos dados pendentes. Representar apenas o valor numérico, sem R$, pontos de milhar ou texto. Converter vírgula decimal quando necessário. Nunca estimar, calcular ou deduzir o valor total a partir dos litros ou preço do combustível. O valor, quando informado, deve ser maior que zero. Usar null quando ausente.\"\n    },\n    \"odometro\": {\n      \"type\": [\n        \"integer\",\n        \"null\"\n      ],\n      \"minimum\": 0,\n      \"description\": \"Quilometragem do odômetro explicitamente informada pelo usuário ou já existente nos dados pendentes. Retornar somente um número inteiro não negativo, sem unidade, pontos de milhar ou texto. Nunca calcular, estimar ou deduzir a quilometragem. Usar null quando ausente.\"\n    },\n    \"observacao\": {\n      \"type\": [\n        \"string\",\n        \"null\"\n      ],\n      \"minLength\": 1,\n      \"maxLength\": 500,\n      \"description\": \"Informação adicional explicitamente mencionada pelo usuário ou já existente nos dados pendentes. Não usar este campo para armazenar combustível, litros, valor, odômetro ou outras informações que pertençam aos campos estruturados. Não inventar observações. Quando não houver observação, retornar null em vez de string vazia.\"\n    }\n  },\n  \"required\": [\n    \"data\",\n    \"veiculo_id\",\n    \"combustivel\",\n    \"litros\",\n    \"valor_total\",\n    \"odometro\",\n    \"observacao\"\n  ],\n  \"additionalProperties\": false\n}",
         "options": {
           "systemPromptTemplate": "Você extrai e atualiza dados de um abastecimento.\n\nA entrada contém:\n\nData atual\nStatus atual\nDados pendentes\nCampo esperado\nNova mensagem do usuário\n\nRetorne somente os campos definidos no JSON Schema.\n\nREGRAS GERAIS\n\n1. Esta mensagem já foi classificada como registro, complemento ou correção de abastecimento.\n2. Não classifique a intenção da mensagem.\n3. Não retorne ação, categoria ou tipo de consulta.\n4. Não interprete confirmação ou cancelamento.\n5. Não calcule preço por litro.\n6. Nunca invente combustível, litros, valor total ou odômetro.\n\nDADOS PENDENTES\n\n1. Quando Dados pendentes não for nenhum, preserve todos os valores existentes.\n2. Use a Nova mensagem para preencher ou corrigir os dados.\n3. Quando a mensagem for curta, interprete-a como resposta ao Campo esperado.\n4. Nunca apague um valor existente apenas porque ele não foi repetido.\n5. Um valor existente somente deve ser alterado quando a mensagem indicar claramente uma correção.\n6. Campos ainda ausentes devem permanecer null.\n\nDATA\n\n1. A Data atual fornecida na entrada é a única referência de data atual válida.\n2. Nunca use a data interna do modelo.\n3. Em um novo abastecimento, se nenhuma data for mencionada, use a Data atual.\n4. Hoje significa a Data atual.\n5. Ontem significa um dia antes da Data atual.\n6. Anteontem significa dois dias antes da Data atual.\n7. Dia 10 ou dia 10 deste mês significa o dia 10 do mês e ano da Data atual.\n8. Uma data como 10/07 usa o ano da Data atual.\n9. Uma data completa deve ser respeitada.\n10. Retorne sempre no formato YYYY-MM-DD.\n\nVEÍCULO\n\n1. Se um veículo for informado, use o veículo informado.\n2. Em um novo abastecimento, se nenhum veículo for informado, use HB20.\n3. Meu carro, no carro ou meu veículo significam HB20.\n4. Nunca substitua um veículo explicitamente informado por HB20.\n\nOUTROS CAMPOS\n\n1. Combustível somente pode vir da mensagem ou dos dados pendentes.\n2. Litros somente podem vir da mensagem ou dos dados pendentes.\n3. Valor total somente pode vir da mensagem ou dos dados pendentes.\n4. Odômetro somente pode vir da mensagem ou dos dados pendentes.\n5. Converta números com vírgula para números decimais.\n6. Observação deve conter apenas informação adicional explicitamente mencionada."
         }
@@ -90,7 +90,7 @@
       "type": "@n8n/n8n-nodes-langchain.informationExtractor",
       "typeVersion": 1.2,
       "position": [
-        944,
+        1360,
         -304
       ],
       "id": "b6e78a2a-3b0f-4640-a25d-112910e60fda",
@@ -124,7 +124,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1536,
+        1952,
         -304
       ],
       "id": "5de1a1b0-039b-459f-9712-7c886d584409",
@@ -141,7 +141,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2048,
+        2464,
         -288
       ],
       "id": "b1048036-b638-4426-ac81-11bdda083dc9",
@@ -158,7 +158,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2048,
+        2464,
         -480
       ],
       "id": "4bf08424-f18b-4b43-8d75-01cfd0c45df9",
@@ -205,7 +205,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        1824,
+        2240,
         -288
       ],
       "id": "a4627869-bb0b-433e-8a5a-6e4960e74c1f",
@@ -221,7 +221,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        64,
+        480,
         16
       ],
       "id": "226491d8-bd5b-48db-b950-de32a7d7b9dd",
@@ -273,7 +273,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        1824,
+        2240,
         -480
       ],
       "id": "dbfdf9f3-164e-4142-a7c7-dee108d496cb",
@@ -330,7 +330,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        1136,
+        1552,
         320
       ],
       "id": "7b8f92c1-0f25-48a5-9670-b438d939e4f3",
@@ -346,7 +346,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        1328,
+        1744,
         320
       ],
       "id": "6901d401-10a1-4e45-ba37-053f895f1f2c",
@@ -363,7 +363,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1520,
+        1936,
         320
       ],
       "id": "2f870939-9d67-45bc-aeb6-d539601a879f",
@@ -379,7 +379,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNode",
       "typeVersion": 2,
       "position": [
-        928,
+        1344,
         512
       ],
       "id": "ea8cfe7c-0bfc-4111-946b-a2a504611185",
@@ -396,7 +396,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1136,
+        1552,
         512
       ],
       "id": "d372d6af-f65a-4554-bfb5-e24118bb7de0",
@@ -437,7 +437,7 @@
       "type": "@n8n/n8n-nodes-langchain.textClassifier",
       "typeVersion": 1.1,
       "position": [
-        288,
+        704,
         -32
       ],
       "id": "510b9431-0a5b-48f5-bff0-2781ea416b2f",
@@ -450,7 +450,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        928,
+        1344,
         320
       ],
       "id": "88737f3f-ee37-4776-8633-8395d4ce81e5",
@@ -459,7 +459,7 @@
     {
       "parameters": {
         "chatId": "={{ $('Normalizar entrada').item.json.chat_id }}",
-        "text": "Não entendi a solicitação.  Você pode registrar um abastecimento, consultar informações ou continuar um registro pendente.",
+        "text": "Não entendi a solicitação.",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -467,7 +467,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        928,
+        1344,
         704
       ],
       "id": "8a7b4d43-1b62-4261-9cda-49d4bf386ec9",
@@ -484,7 +484,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        928,
+        1344,
         -48
       ],
       "id": "3e815970-1235-4e15-bbe9-39b497220ae6",
@@ -501,7 +501,7 @@
       "type": "n8n-nodes-sqlite3.sqliteNodeTool",
       "typeVersion": 2,
       "position": [
-        1104,
+        1520,
         144
       ],
       "id": "f0269743-e55e-411c-b9f6-ff2dca09e775",
@@ -515,7 +515,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        288,
+        704,
         256
       ],
       "id": "a69baf4f-06d9-45e9-8243-2c937b04fff4",
@@ -531,7 +531,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        944,
+        1360,
         -176
       ],
       "id": "48624d8c-4759-4e55-912d-a3e700b09ce7",
@@ -545,7 +545,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
       "typeVersion": 1,
       "position": [
-        928,
+        1344,
         144
       ],
       "id": "07c8507c-b2d3-474f-8757-5088218dd31b",
@@ -562,11 +562,96 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1280,
+        1696,
         -48
       ],
       "id": "b0eed1cf-75ff-405a-b21c-0bbf8bd074a7",
       "name": "Enviar resposta da consulta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5f892968-1528-473b-9a17-2b1b90f2dfcf",
+              "leftValue": "={{ $json.message.from.id }}",
+              "rightValue": "REPLACE_WITH_TELEGRAM_USER_ID",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -208,
+        32
+      ],
+      "id": "04a0ca69-40c2-4c08-8f91-eac5ed6913c7",
+      "name": "Usuário autorizado?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5c702135-f895-4028-b5d3-e6e1f06d476b",
+              "leftValue": "={{ $json.message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        16,
+        32
+      ],
+      "id": "a6c7be29-3812-45eb-88d4-86f77d24e317",
+      "name": "Mensagem é texto?"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Não recebo arquivos. Envie apenas mensagens de texto.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        224
+      ],
+      "id": "3a0bba36-78eb-41b1-b1af-438e1e918112",
+      "name": "Informar arquivo não suportado"
     }
   ],
   "pinData": {},
@@ -575,7 +660,7 @@
       "main": [
         [
           {
-            "node": "Normalizar entrada",
+            "node": "Usuário autorizado?",
             "type": "main",
             "index": 0
           }
@@ -799,6 +884,35 @@
           {
             "node": "Agente de consultas",
             "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Usuário autorizado?": {
+      "main": [
+        [
+          {
+            "node": "Mensagem é texto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem é texto?": {
+      "main": [
+        [
+          {
+            "node": "Normalizar entrada",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Informar arquivo não suportado",
+            "type": "main",
             "index": 0
           }
         ]
